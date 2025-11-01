@@ -9,8 +9,24 @@ struct WelcomeSheetView: View {
     @State private var usernameField: String = ""
     @State private var passwordField: String = ""
     
-    @State private var loading: Bool = true
+    @State private var loading: Bool = false
     @State private var showError: Error? = nil
+    
+    func signIn() {
+        Task {
+            loading = true
+            
+            do {
+                let client = try await MatrixClient.login(homeServer: homeserverField, username: usernameField, password: passwordField)
+                appState.matrixClient = client
+            } catch {
+                showError = error
+            }
+            
+            loading = false
+            dismiss()
+        }
+    }
     
     var body: some View {
         VStack {
@@ -21,27 +37,16 @@ struct WelcomeSheetView: View {
             Form {
                 TextField("Homeserver", text: $homeserverField)
                     .disabled(loading)
+                    .onSubmit { signIn() }
                 TextField("Username", text: $usernameField)
                     .disabled(loading)
+                    .onSubmit { signIn() }
                 SecureField("Password", text: $passwordField)
                     .disabled(loading)
+                    .onSubmit { signIn() }
                 
                 HStack {
-                    Button("Sign in") {
-                        Task {
-                            loading = true
-                            
-                            do {
-                                let client = try await MatrixClient.login(homeServer: homeserverField, username: usernameField, password: passwordField)
-                                appState.matrixClient = client
-                            } catch {
-                                showError = error
-                            }
-                            
-                            loading = false
-                            dismiss()
-                        }
-                    }
+                    Button("Sign in") { signIn() }
                     .disabled(loading)
                     Button("Register account") {}
                         .buttonStyle(.link)

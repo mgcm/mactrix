@@ -49,13 +49,17 @@ struct UserSession: Codable {
 
 @Observable class MatrixClient {
     let storeID: String
-    let client: Client
+    let client: ClientProtocol
     
     var rooms: [Room] = []
     
-    init(storeID: String, client: Client) {
+    init(storeID: String, client: ClientProtocol) {
         self.storeID = storeID
         self.client = client
+    }
+    
+    static var previewMock: MatrixClient {
+        MatrixClient(storeID: UUID().uuidString, client: MatrixClientMock())
     }
     
     func userSession() throws -> UserSession {
@@ -103,6 +107,14 @@ struct UserSession: Codable {
         try await client.restoreSession(session: session)
         
         return MatrixClient(storeID: storeID, client: client)
+    }
+    
+    func reset() async throws {
+        try? await client.logout()
+        try? FileManager.default.removeItem(at: .sessionData(for: self.storeID))
+        try? FileManager.default.removeItem(at: .sessionCaches(for: self.storeID))
+        let keychain = Keychain(service: applicationID)
+        try keychain.removeAll()
     }
     
     fileprivate var syncService: SyncService!

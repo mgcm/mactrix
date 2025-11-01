@@ -17,19 +17,20 @@ struct SidebarChannelView: View {
                         Spacer()
                         Text(room.displayName() ?? "Unknown Room")
                         Spacer()
-                        Divider()
+                        //Divider()
                     }
                     
                     Spacer()
                 }
                 .frame(height: 48)
-                .listRowSeparator(.hidden)
+                .listRowSeparator(.visible)
+                //.listRowSeparator(.hidden)
                 .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
             }
         }
         .listStyle(.sidebar)
         .padding(.top, 10)
-        .background()
+        //.background()
     }
 }
 

@@ -32,7 +32,7 @@ struct SpaceIcon: View {
             }
         }
         .aspectRatio(1.0, contentMode: .fit)
-        .background(.red)
+        .background(.gray)
         .cornerRadius(6)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
@@ -56,6 +56,7 @@ struct SpaceIcon: View {
 struct SidebarSpacesView: View {
     
     @Environment(AppState.self) var appState
+    let bgColor = Color(NSColor.windowBackgroundColor)
     
     //let spaces = ["First Space", "Second Space", "Third Space"]
     @State private var selectedSpaceId: String? = nil
@@ -70,12 +71,13 @@ struct SidebarSpacesView: View {
             SpaceIcon(room: room, selected: room.id() == selectedSpaceId)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                .listRowBackground(Color(NSColor.controlBackgroundColor))
+                .listRowBackground(bgColor)
         }
         .listStyle(.plain)
         .padding(.top, 6)
         .frame(width: 56)
-        .background(Color(NSColor.controlBackgroundColor))
+        .scrollContentBackground(.hidden)
+        .background(bgColor)
         .overlay( Divider()
             .frame(maxWidth: 1, maxHeight: .infinity)
             .background(Color(NSColor.separatorColor)), alignment: .trailing)

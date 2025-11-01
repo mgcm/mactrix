@@ -22,3 +22,9 @@ extension MatrixRustSDK.TimelineItem: @retroactive Identifiable {
         self.uniqueId().id
     }
 }
+
+extension MatrixRustSDK.Reaction: @retroactive Identifiable {
+    public var id: String {
+        self.key
+    }
+}

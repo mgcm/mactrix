@@ -13,6 +13,8 @@ struct RoomIcon: View {
 struct MainView: View {
     @Environment(AppState.self) var appState
     
+    @State private var showWelcomeSheet: Bool = false
+    
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             SidebarSpacesView()
@@ -22,8 +24,50 @@ struct MainView: View {
             } detail: {
                 ContentUnavailableView("Select a room", systemImage: "message.fill")
             }
+            .background(Color(NSColor.controlBackgroundColor))
             .toolbarColorScheme(.light, for: .windowToolbar)
             .toolbar(removing: .title)
+        }
+        .task { await attemptLoadUserSession() }
+        .sheet(isPresented: $showWelcomeSheet, onDismiss: {
+            Task {
+                try await Task.sleep(for: .milliseconds(100))
+                if let matrixClient = appState.matrixClient {
+                    onMatrixLoaded(matrixClient: matrixClient)
+                } else {
+                    NSApp.terminate(nil)
+                }
+            }
+        }) {
+            WelcomeSheetView()
+        }
+        .onChange(of: appState.matrixClient == nil) { _, matrixClientIsNil in
+            if matrixClientIsNil {
+                showWelcomeSheet = true
+            }
+        }
+    }
+    
+    func attemptLoadUserSession() async {
+        do {
+            if let matrixClient = try await MatrixClient.attemptRestore() {
+                appState.matrixClient = matrixClient
+            }
+        } catch {
+            print(error)
+        }
+        
+        showWelcomeSheet = appState.matrixClient == nil
+        if let matrixClient = appState.matrixClient {
+            onMatrixLoaded(matrixClient: matrixClient)
+        }
+    }
+    
+    func onMatrixLoaded(matrixClient: MatrixClient) {
+        Task {
+            print("Matrix sync starting")
+            try await matrixClient.startSync()
+            print("Matrix sync done")
         }
     }
 }
