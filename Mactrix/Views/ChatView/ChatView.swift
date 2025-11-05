@@ -39,44 +39,38 @@ struct ChatView: View {
     
     @State private var errorMessage: String? = nil
     
-    @State private var scrollPosition = ScrollPosition()
+    @State private var scrollPosition: String? = nil
     
     var body: some View {
         VStack(spacing: 0) {
-            if let timelineItems = timeline?.timelineItems {
-                ScrollViewReader { proxy in
-                    ScrollView([.vertical]) {
-                        VStack {
-                                ForEach(timelineItems) { item in
-                                    if let event = item.asEvent() {
-                                        TimelineItemView(event: event).id(item.id)
+            ScrollView([.vertical]) {
+                if let timelineItems = timeline?.timelineItems {
+                            LazyVStack {
+                                    ForEach(timelineItems) { item in
+                                        if let event = item.asEvent() {
+                                            TimelineItemView(event: event).id(item.id)
+                                        }
+                                        if let _ = item.asVirtual() {
+                                            Text("Virtual item").id(item.id)
+                                        }
                                     }
-                                    if let _ = item.asVirtual() {
-                                        Text("Virtual item").id(item.id)
-                                    }
-                                }
-                        }
-                        .scrollTargetLayout()
-                    }
-                    .scrollPosition($scrollPosition, anchor: .bottom)
-                    .safeAreaPadding(.bottom, 10)
-                    .scrollContentBackground(.hidden)
-                    .defaultScrollAnchor(.bottom)
-                    .onChange(of: timeline?.timelineItems.count) { _, _ in
-                        withAnimation {
-                            scrollPosition.scrollTo(edge: .bottom)
-                        }
-                    }
+                            }
+                            .scrollTargetLayout()
+                } else {
+                    ProgressView()
                 }
-            } else {
-                ProgressView()
+                
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(Color.red)
+                        .frame(maxWidth: .infinity)
+                }
+                
             }
-            
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundStyle(Color.red)
-                    .frame(maxWidth: .infinity)
-            }
+            .scrollPosition(id: $scrollPosition, anchor: .bottom)
+            .safeAreaPadding(.bottom, 10)
+            .scrollContentBackground(.hidden)
+            .defaultScrollAnchor(.bottom)
             
             ChatInputView(room: room, timeline: timeline?.timeline)
         }

@@ -14,13 +14,14 @@ struct MainView: View {
     @Environment(AppState.self) var appState
     
     @State private var showWelcomeSheet: Bool = false
+    @State private var selectedCategory: SelectedCategory = .rooms
     
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            SidebarSpacesView()
+            SidebarSpacesView(selectedCategory: $selectedCategory)
             
             NavigationSplitView {
-                SidebarChannelView()
+                SidebarChannelView(selectedCategory: selectedCategory)
             } detail: {
                 ContentUnavailableView("Select a room", systemImage: "message.fill")
             }

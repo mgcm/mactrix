@@ -41,6 +41,11 @@ struct UserSession: Codable {
     }
     
     static func loadUserFromKeychain() throws -> Self? {
+        #if DEBUG
+        if true {
+            return try JSONDecoder().decode(Self.self, from: DevSecrets.matrixSession.data(using: .utf8)!)
+        }
+        #endif
         let keychain = Keychain(service: applicationID)
         guard let keychainData = try keychain.getData(keychainKey) else { return nil }
         return try JSONDecoder().decode(Self.self, from: keychainData)
