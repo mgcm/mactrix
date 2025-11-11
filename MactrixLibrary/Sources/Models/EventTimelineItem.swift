@@ -11,15 +11,51 @@ public protocol EventTimelineItem {
     var isRemote: Bool { get }
     //var eventOrTransactionId: EventOrTransactionId { get }
     var sender: String { get }
-    var senderProfile: ProfileDetails { get }
+    var senderProfileDetails: ProfileDetails { get }
     var isOwn: Bool { get }
     var isEditable: Bool { get }
     //var content: TimelineItemContent { get }
-    var timestamp: Date { get }
+    var date: Date { get }
     //var localSendState: EventSendState? { get }
     var localCreatedAt: UInt64? { get }
     //var readReceipts: [String: Receipt] { get }
     //var origin: EventItemOrigin? { get }
     var canBeRepliedTo: Bool { get }
     //var lazyProvider: LazyTimelineItemProvider { get }
+}
+
+public struct MockEventTimelineItem: EventTimelineItem {
+    public init() {}
+    
+    public var isRemote: Bool {
+        true
+    }
+    
+    public var sender: String {
+        "sender@address"
+    }
+    
+    public var senderProfileDetails: ProfileDetails {
+        .ready(displayName: "Sender Name", displayNameAmbiguous: false, avatarUrl: nil)
+    }
+    
+    public var isOwn: Bool {
+        false
+    }
+    
+    public var isEditable: Bool {
+        false
+    }
+    
+    public var date: Date {
+        .now
+    }
+    
+    public var localCreatedAt: UInt64? {
+        nil
+    }
+    
+    public var canBeRepliedTo: Bool {
+        true
+    }
 }

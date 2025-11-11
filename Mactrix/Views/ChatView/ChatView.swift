@@ -12,19 +12,19 @@ struct TimelineItemView: View {
         case .msgLike(content: let content):
             ChatMessageView(event: event, msg: content)
         case .callInvite:
-            GenericEventView(name: "Call invite")
+            UI.GenericEventView(event: event, name: "Call invite")
         case .rtcNotification:
-            GenericEventView(name: "Rtc notification")
+            UI.GenericEventView(event: event, name: "Rtc notification")
         case .roomMembership(userId: _, userDisplayName: _, change: _, reason: _):
-            GenericEventView(name: "Room membership")
+            UI.GenericEventView(event: event, name: "Room membership")
         case .profileChange(displayName: _, prevDisplayName: _, avatarUrl: _, prevAvatarUrl: _):
-            GenericEventView(name: "Profile change")
+            UI.GenericEventView(event: event, name: "Profile change")
         case let .state(stateKey: stateKey, content: content):
             StateEventView(event: event, stateKey: stateKey, state: content)
         case .failedToParseMessageLike(eventType: _, error: let error):
-            GenericEventView(name: "Failed to parse message like: \(error)")
+            UI.GenericEventView(event: event, name: "Failed to parse message like: \(error)")
         case .failedToParseState(eventType: _, stateKey: _, error: let error):
-            GenericEventView(name: "Failed to parse state: \(error)")
+            UI.GenericEventView(event: event, name: "Failed to parse state: \(error)")
         }
     }
 }

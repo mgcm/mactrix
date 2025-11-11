@@ -64,11 +64,4 @@ struct StateEventView: View {
     }
 }
 
-struct GenericEventView: View {
-    let name: String
-    
-    var body: some View {
-        Text(name)
-            .frame(maxWidth: .infinity)
-    }
-}
+

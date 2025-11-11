@@ -61,6 +61,16 @@ extension MatrixRustSDK.Reaction: @retroactive Identifiable {
     }
 }
 
+extension MatrixRustSDK.Reaction: Models.Reaction {
+    public typealias SenderData = MatrixRustSDK.ReactionSenderData
+}
+
+extension MatrixRustSDK.ReactionSenderData: Models.ReactionSenderData {
+    public var date: Date {
+        timestamp.date
+    }
+}
+
 extension MatrixRustSDK.Timestamp {
     public var date: Date {
         Date(timeIntervalSince1970: Double(self) / 1000)
@@ -77,5 +87,30 @@ extension MatrixRustSDK.VirtualTimelineItem {
         case .timelineStart:
             return .timelineStart
         }
+    }
+}
+
+extension MatrixRustSDK.ProfileDetails {
+    var asModel: Models.ProfileDetails {
+        switch self {
+        case .unavailable:
+            return .unavailable
+        case .pending:
+            return .pending
+        case .ready(let displayName, let displayNameAmbiguous, let avatarUrl):
+            return .ready(displayName: displayName, displayNameAmbiguous: displayNameAmbiguous, avatarUrl: avatarUrl)
+        case .error(let message):
+            return .error(message: message)
+        }
+    }
+}
+
+extension MatrixRustSDK.EventTimelineItem: Models.EventTimelineItem {
+    public var senderProfileDetails: Models.ProfileDetails {
+        self.senderProfile.asModel
+    }
+    
+    public var date: Date {
+        timestamp.date
     }
 }
