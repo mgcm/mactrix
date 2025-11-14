@@ -48,7 +48,5 @@ extension LiveSpaceService: SpaceServiceJoinedSpacesListener {
                 spaceRooms = values.map { SidebarSpaceRoom(spaceService: self, spaceRoom: $0) }
             }
         }
-        
-        print("Space list updated: \(spaceRooms.count) \(roomUpdates) \(spaceRooms)")
     }
 }

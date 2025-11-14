@@ -103,13 +103,18 @@ struct HomeserverLogin {
     }
 }
 
+enum SelectedRoom {
+    case joinedRoom(_ room: LiveRoom)
+    case previewRoom(_ room: RoomPreview)
+}
+
 @Observable class MatrixClient {
     let storeID: String
     let client: ClientProtocol
     
     var rooms: [SidebarRoom] = []
     
-    var selectedRoom: LiveRoom? = nil
+    var selectedRoom: SelectedRoom? = nil
     
     let spaceService: LiveSpaceService
     

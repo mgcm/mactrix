@@ -1,5 +1,14 @@
 import Foundation
 
+public enum SelectedRoom<R: Room, RP: RoomPreview> {
+    case joinedRoom(_ room: R)
+    case previewRoom(_ room: RP)
+}
+
+public protocol RoomPreview: Hashable, Identifiable {
+    
+}
+
 public protocol Room: Hashable, Identifiable {
     var displayName: String? { get }
     var topic: String? { get }

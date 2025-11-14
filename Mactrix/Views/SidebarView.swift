@@ -9,14 +9,23 @@ struct SpaceDisclosureGroup: View {
     
     @State private var isExpanded: Bool = false
     
+    var loadingRooms: some View {
+        Label {
+            Text("Loading rooms")
+                .foregroundStyle(.secondary)
+        } icon: {
+            ProgressView().scaleEffect(0.5)
+        }
+    }
+    
     var spaceRow: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
             switch space.children {
             case .loading:
-                ProgressView("Loading rooms")
+                loadingRooms
             case .loaded(let children):
                 if children.paginationState == .loading {
-                    ProgressView("Loading rooms")
+                    loadingRooms
                 } else {
                     ForEach(children.rooms) { room in
                         SpaceDisclosureGroup(space: room)
@@ -31,7 +40,6 @@ struct SpaceDisclosureGroup: View {
             roomRow
         }
         .task(id: isExpanded) {
-            print("space expanded \(isExpanded) \(space.spaceRoom.id)")
             if isExpanded {
                 await space.loadChildren()
             }
