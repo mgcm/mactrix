@@ -44,7 +44,7 @@ struct MainView: View {
         .inspector(isPresented: $inspectorVisible, content: {
             switch windowState.selectedScreen {
             case .joinedRoom(let room):
-                UI.RoomInspectorView(room: room, members: room.fetchedMembers, inspectorVisible: $inspectorVisible)
+                UI.RoomInspectorView(room: room, members: room.fetchedMembers, roomInfo: room.roomInfo, inspectorVisible: $inspectorVisible)
             case .previewRoom(let room):
                 Text("Preview room: \(room.info().name ?? "unknown name")")
             case .none, .newRoom:
@@ -92,6 +92,9 @@ struct MainView: View {
     func onMatrixLoaded(matrixClient: MatrixClient) {
         Task {
             try await matrixClient.startSync()
+            
+            // check if a room is selected and load it
+            await onRoomSelected()
         }
     }
     
@@ -114,7 +117,7 @@ struct MainView: View {
             
             if let roomId = selectedRoomId {
                 if let selectedRoom = try matrixClient.client.getRoom(roomId: roomId) {
-                    self.windowState.selectedScreen = .joinedRoom(LiveRoom(room: selectedRoom))
+                    self.windowState.selectedScreen = .joinedRoom(LiveRoom(matrixRoom: selectedRoom))
                 } else {
                     let roomPreview = try await matrixClient.client.getRoomPreviewFromRoomId(roomId: roomId, viaServers: ["matrix.org"])
                     

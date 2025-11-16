@@ -1,4 +1,5 @@
 import SwiftUI
+import Models
 
 struct ErrorPopover: View {
     let error: Error
@@ -34,7 +35,7 @@ struct MockError: LocalizedError {
 public struct RoomRow: View {
     let title: String
     let avatarUrl: String?
-    let placeholderImageName: String
+    let roomInfo: RoomInfo?
     let imageLoader: ImageLoader?
     let joinRoom: (() async throws -> Void)?
     
@@ -42,12 +43,22 @@ public struct RoomRow: View {
     @State private var error: Error? = nil
     @State private var isErrorVisible: Bool = false
 
-    public init(title: String, avatarUrl: String?, imageLoader: ImageLoader?, joinRoom: (() async throws -> Void)?, placeholderImageName: String = "number") {
+    public init(title: String, avatarUrl: String?, roomInfo: RoomInfo?, imageLoader: ImageLoader?, joinRoom: (() async throws -> Void)?) {
         self.title = title
         self.avatarUrl = avatarUrl
+        self.roomInfo = roomInfo
         self.imageLoader = imageLoader
-        self.placeholderImageName = placeholderImageName
         self.joinRoom = joinRoom
+    }
+    
+    var placeholderImageName: String {
+        if roomInfo?.isSpace == true {
+            "network"
+        } else if roomInfo?.isDirect == true {
+            "person.fill"
+        } else {
+            "number"
+        }
     }
     
     var label: some View {
@@ -60,7 +71,24 @@ public struct RoomRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             }
         )
+        .fontWeight(isUnread ? .bold : .regular)
         .help(title)
+    }
+    
+    var badgeProminence: BadgeProminence {
+        guard let roomInfo else { return .standard }
+        return roomInfo.highlightCount > 0 ? .increased : .standard
+    }
+    
+    var notifications: Int {
+        guard let roomInfo else { return 0 }
+        
+        return Int(roomInfo.numUnreadMessages)
+        //return roomInfo.highlightCount > 0 ? Int(roomInfo.highlightCount) : Int(roomInfo.notificationCount)
+    }
+    
+    var isUnread: Bool {
+        return notifications > 0 || roomInfo?.isMarkedUnread == true
     }
     
     public var body: some View {
@@ -94,6 +122,8 @@ public struct RoomRow: View {
                 label
             }
         }
+        .badge(notifications)
+        .badgeProminence(badgeProminence)
         .listItemTint(.gray)
         .task(id: joining) {
             guard joining else { return }
@@ -118,25 +148,25 @@ public struct RoomRow: View {
             RoomRow(
                 title: "Room row 1",
                 avatarUrl: nil,
+                roomInfo: nil,
                 imageLoader: nil,
-                joinRoom: nil,
-                placeholderImageName: "number"
+                joinRoom: nil
             )
             
             RoomRow(
                 title: "Room row 2",
                 avatarUrl: nil,
+                roomInfo: nil,
                 imageLoader: nil,
-                joinRoom: nil,
-                placeholderImageName: "number"
+                joinRoom: nil
             )
             
             RoomRow(
                 title: "Room row 3",
                 avatarUrl: nil,
+                roomInfo: nil,
                 imageLoader: nil,
-                joinRoom: {},
-                placeholderImageName: "number"
+                joinRoom: {}
             )
         }
     }

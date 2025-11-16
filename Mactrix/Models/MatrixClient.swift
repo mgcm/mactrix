@@ -187,14 +187,24 @@ enum SelectedScreen {
     var roomListService: RoomListService?
     var roomListEntriesHandle: RoomListEntriesWithDynamicAdaptersResult?
     
+    var notificationClient: NotificationClient?
+    
     func startSync() async throws {
-        syncService = try await client.syncService().finish()
-        roomListService = syncService?.roomListService()
-        roomListEntriesHandle = try await roomListService?.allRooms().entriesWithDynamicAdapters(pageSize: 100, listener: self)
-        let _ = roomListEntriesHandle?.controller().setFilter(kind: .all(filters: []))
+        let _syncService = try await client.syncService().finish()
+        syncService = _syncService
+        
+        let _roomListService = _syncService.roomListService()
+        roomListService = _roomListService
+        
+        let _roomListEntriesHandle = try await _roomListService.allRooms().entriesWithDynamicAdapters(pageSize: 100, listener: self)
+        roomListEntriesHandle = _roomListEntriesHandle
+        
+        let _ = _roomListEntriesHandle.controller().setFilter(kind: .all(filters: []))
+        
+        notificationClient = try await client.notificationClient(processSetup: .singleProcess(syncService: _syncService))
         
         // Start the sync loop.
-        await syncService?.start()
+        await _syncService.start()
         print("Matrix sync started")
     }
     

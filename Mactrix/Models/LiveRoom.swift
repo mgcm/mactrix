@@ -6,11 +6,18 @@ import Models
 public final class LiveRoom: MatrixRustSDK.Room, Models.Room {
     public var typingUserIds: [String] = []
     public var fetchedMembers: [MatrixRustSDK.RoomMember]? = nil
+    public var roomInfo: MatrixRustSDK.RoomInfo? = nil
     
     private var typingHandle: TaskHandle?
     
-    public convenience init(room: MatrixRustSDK.Room) {
+    public convenience init(sidebarRoom room: SidebarRoom) {
         self.init(unsafeFromRawPointer: room.uniffiClonePointer())
+        self.roomInfo = room.roomInfo
+    }
+    
+    public convenience init(matrixRoom room: MatrixRustSDK.Room) {
+        self.init(unsafeFromRawPointer: room.uniffiClonePointer())
+        loadRoomInfo()
     }
     
     required init(unsafeFromRawPointer pointer: UnsafeMutableRawPointer) {
@@ -18,8 +25,18 @@ public final class LiveRoom: MatrixRustSDK.Room, Models.Room {
         startListening()
     }
     
-    private func startListening() {
+    fileprivate func startListening() {
         self.typingHandle = subscribeToTypingNotifications(listener: self)
+    }
+    
+    fileprivate func loadRoomInfo() {
+        Task {
+            do {
+                self.roomInfo = try await self.roomInfo()
+            } catch {
+                print("Failed to load room info: \(error)")
+            }
+        }
     }
     
     

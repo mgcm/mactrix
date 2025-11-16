@@ -56,6 +56,8 @@ extension MatrixRustSDK.Room: @retroactive Identifiable {
     }
 }
 
+extension MatrixRustSDK.RoomInfo: Models.RoomInfo {}
+
 extension MatrixRustSDK.TimelineItem: @retroactive Hashable, @retroactive Identifiable {
     public var id: String {
         self.uniqueId().id

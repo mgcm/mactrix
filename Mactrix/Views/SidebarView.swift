@@ -54,7 +54,7 @@ struct SpaceDisclosureGroup: View {
                 print("Joining room: \(space.id)")
                 guard let matrixClient = appState.matrixClient else { return }
                 let room = try await matrixClient.client.joinRoomById(roomId: space.id)
-                windowState.selectedScreen = .joinedRoom(LiveRoom(room: room))
+                windowState.selectedScreen = .joinedRoom(LiveRoom(matrixRoom: room))
             }
         }
         
@@ -71,9 +71,9 @@ struct SpaceDisclosureGroup: View {
             UI.RoomRow(
                 title: space.spaceRoom.displayName,
                 avatarUrl: space.spaceRoom.avatarUrl,
+                roomInfo: joinedRoom.roomInfo,
                 imageLoader: appState.matrixClient,
-                joinRoom: nil,
-                placeholderImageName: "network"
+                joinRoom: nil
             )
             .contextMenu {
                 RoomContextMenu(room: joinedRoom, selectedRoomId: $selectedRoomId)
@@ -82,9 +82,9 @@ struct SpaceDisclosureGroup: View {
             UI.RoomRow(
                 title: space.spaceRoom.displayName,
                 avatarUrl: space.spaceRoom.avatarUrl,
+                roomInfo: nil,
                 imageLoader: appState.matrixClient,
-                joinRoom: joinRoom,
-                placeholderImageName: "network"
+                joinRoom: joinRoom
             )
         }
         
@@ -104,6 +104,44 @@ struct RoomContextMenu: View {
     @Binding var selectedRoomId: String?
     
     var body: some View {
+        if let roomInfo = room.roomInfo {
+            Button {
+                Task {
+                    do {
+                        print("marking room unread/read")
+                        try await room.setUnreadFlag(newValue: !roomInfo.isMarkedUnread)
+                    } catch {
+                        print("failed to mark room unread/read: \(error)")
+                    }
+                }
+            } label: {
+                if roomInfo.isMarkedUnread {
+                    Text("Mark as Read")
+                } else {
+                    Text("Mark as Unread")
+                }
+            }
+
+            
+            Button {
+                Task {
+                    do {
+                        print("mark room favourite: \(!roomInfo.isFavourite)")
+                        try await room.setIsFavourite(isFavourite: !roomInfo.isFavourite, tagOrder: nil)
+                    } catch {
+                        print("failed to mark room favourite: \(error)")
+                    }
+                }
+                
+            } label: {
+                if roomInfo.isFavourite {
+                    Label("Unfavorite", systemImage: "heart.slash")
+                } else {
+                    Label("Favorite", systemImage: "heart")
+                }
+            }
+        }
+        
         Button {
             Task {
                 do {
@@ -119,7 +157,7 @@ struct RoomContextMenu: View {
                 }
             }
         } label: {
-            Label("Leave room", systemImage: "minus.circle")
+            Label("Leave Room", systemImage: "minus.circle")
         }
     }
 }
@@ -129,6 +167,11 @@ struct SidebarView: View {
     @Environment(WindowState.self) var windowState
     
     @State private var searchText: String = ""
+    
+    var favorites: [SidebarRoom] {
+        (appState.matrixClient?.rooms ?? [])
+            .filter { $0.roomInfo?.isFavourite == true }
+    }
     
     var directs: [SidebarRoom] {
         (appState.matrixClient?.rooms ?? [])
@@ -148,14 +191,31 @@ struct SidebarView: View {
     
     var body: some View {
         List(selection: $selectedRoomId) {
+            if !favorites.isEmpty {
+                Section("Favorites") {
+                    ForEach(favorites) { room in
+                        UI.RoomRow(
+                            title: room.displayName() ?? "Unknown room",
+                            avatarUrl: room.avatarUrl(),
+                            roomInfo: room.roomInfo,
+                            imageLoader: appState.matrixClient,
+                            joinRoom: nil
+                        )
+                        .contextMenu {
+                            RoomContextMenu(room: room, selectedRoomId: $selectedRoomId)
+                        }
+                    }
+                }
+            }
+            
             Section("Directs") {
                 ForEach(directs) { room in
                     UI.RoomRow(
                         title: room.displayName() ?? "Unknown user",
                         avatarUrl: room.avatarUrl(),
+                        roomInfo: room.roomInfo,
                         imageLoader: appState.matrixClient,
-                        joinRoom: nil,
-                        placeholderImageName: "person.fill"
+                        joinRoom: nil
                     )
                     .contextMenu {
                         RoomContextMenu(room: room, selectedRoomId: $selectedRoomId)
@@ -168,6 +228,7 @@ struct SidebarView: View {
                     UI.RoomRow(
                         title: room.displayName() ?? "Unknown Room",
                         avatarUrl: room.avatarUrl(),
+                        roomInfo: room.roomInfo,
                         imageLoader: appState.matrixClient,
                         joinRoom: nil
                     )

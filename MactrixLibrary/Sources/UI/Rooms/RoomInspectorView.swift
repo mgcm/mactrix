@@ -13,11 +13,14 @@ public struct RoomInspectorView<Room: Models.Room, RoomMember: Models.RoomMember
     let room: Room
     let members: [RoomMember]?
     
+    let roomInfo: RoomInfo?
+    
     @Binding var inspectorVisible: Bool
     
-    public init(room: Room, members: [RoomMember]?, inspectorVisible: Binding<Bool>) {
+    public init(room: Room, members: [RoomMember]?, roomInfo: RoomInfo?, inspectorVisible: Binding<Bool>) {
         self.room = room
         self.members = members
+        self.roomInfo = roomInfo
         self._inspectorVisible = inspectorVisible
     }
     
@@ -74,6 +77,20 @@ public struct RoomInspectorView<Room: Models.Room, RoomMember: Models.RoomMember
                         }
                     }
             }
+            
+            if let roomInfo {
+                Section("Extra room info") {
+                    Text("Room version: \(roomInfo.roomVersion, default: "Unknown")")
+                    Text("Notification count: \(roomInfo.notificationCount)")
+                    Text("Highlight count: \(roomInfo.highlightCount)")
+                    Text("Marked unread: \(roomInfo.isMarkedUnread.description)")
+                    Text("Unread mentions: \(roomInfo.numUnreadMentions)")
+                    Text("Unread messages: \(roomInfo.numUnreadMessages)")
+                    Text("Unread notifications: \(roomInfo.numUnreadNotifications)")
+                }
+                .font(.callout)
+                .textSelection(.enabled)
+            }
         }
         .inspectorColumnWidth(min: 200, ideal: 250, max: 400)
         .toolbar {
@@ -90,6 +107,6 @@ public struct RoomInspectorView<Room: Models.Room, RoomMember: Models.RoomMember
 
 #Preview {
     RoomInspectorView<MockRoom, MockRoomMember>
-        .init(room: MockRoom.previewRoom, members: nil, inspectorVisible: .constant(true))
+        .init(room: MockRoom.previewRoom, members: nil, roomInfo: MockRoomInfo(), inspectorVisible: .constant(true))
         .frame(width: 250, height: 500)
 }
