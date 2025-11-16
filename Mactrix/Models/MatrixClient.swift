@@ -103,9 +103,11 @@ struct HomeserverLogin {
     }
 }
 
-enum SelectedRoom {
+enum SelectedScreen {
     case joinedRoom(_ room: LiveRoom)
     case previewRoom(_ room: RoomPreview)
+    case newRoom
+    case none
 }
 
 @Observable class MatrixClient {

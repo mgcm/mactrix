@@ -8,16 +8,26 @@ struct MainView: View {
     @State private var windowState = WindowState()
     
     @State private var showWelcomeSheet: Bool = false
-    @State private var inspectorVisible: Bool = false
-    @State private var selectedRoomId: String? = nil
+    
+    @SceneStorage("MainView.inspectorVisible")
+    private var inspectorVisible: Bool = false
+    
+    @SceneStorage("MainView.selectedRoomId")
+    private var selectedRoomId: String?
     
     @ViewBuilder var details: some View {
-        switch windowState.selectedRoom {
+        switch windowState.selectedScreen {
         case .joinedRoom(let room):
             ChatView(room: room).id(room.id)
         case .previewRoom(let room):
             Text("Room Preview: \(room.info().name ?? "unknown name")")
-        case nil:
+        case .newRoom:
+            UI.CreateRoomScreen(onSubmit: { params in
+                guard let matrixClient = appState.matrixClient else { return }
+                let newRoom = try await matrixClient.client.createRoom(request: params.asMatrixRequest)
+                selectedRoomId = newRoom
+            })
+        case .none:
             ContentUnavailableView("Select a room", systemImage: "message.fill")
         }
     }
@@ -29,12 +39,12 @@ struct MainView: View {
         )
         .environment(windowState)
         .inspector(isPresented: $inspectorVisible, content: {
-            switch windowState.selectedRoom {
+            switch windowState.selectedScreen {
             case .joinedRoom(let room):
                 UI.RoomInspectorView(room: room, members: room.fetchedMembers, inspectorVisible: $inspectorVisible)
             case .previewRoom(let room):
                 Text("Preview room: \(room.info().name ?? "unknown name")")
-            case nil:
+            case .none, .newRoom:
                 Text("No room selected")
             }
         })
@@ -101,15 +111,15 @@ struct MainView: View {
             
             if let roomId = selectedRoomId {
                 if let selectedRoom = try matrixClient.client.getRoom(roomId: roomId) {
-                    self.windowState.selectedRoom = .joinedRoom(LiveRoom(room: selectedRoom))
+                    self.windowState.selectedScreen = .joinedRoom(LiveRoom(room: selectedRoom))
                 } else {
                     let roomPreview = try await matrixClient.client.getRoomPreviewFromRoomId(roomId: roomId, viaServers: ["matrix.org"])
                     
                     print("Selected room preview: \(roomPreview.info())")
-                    self.windowState.selectedRoom = .previewRoom(roomPreview)
+                    self.windowState.selectedScreen = .previewRoom(roomPreview)
                 }
             } else {
-                self.windowState.selectedRoom = nil
+                self.windowState.selectedScreen = .none
             }
         } catch {
             print("Failed to get room \(error)")

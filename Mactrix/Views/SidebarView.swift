@@ -53,7 +53,7 @@ struct SpaceDisclosureGroup: View {
                 print("Joining room: \(space.id)")
                 guard let matrixClient = appState.matrixClient else { return }
                 let room = try await matrixClient.client.joinRoomById(roomId: space.id)
-                windowState.selectedRoom = SelectedRoom.joinedRoom(LiveRoom(room: room))
+                windowState.selectedScreen = .joinedRoom(LiveRoom(room: room))
             }
         }
         
@@ -80,6 +80,7 @@ struct SpaceDisclosureGroup: View {
 
 struct SidebarView: View {
     @Environment(AppState.self) var appState
+    @Environment(WindowState.self) var windowState
     
     @State private var searchText: String = ""
     
@@ -127,6 +128,11 @@ struct SidebarView: View {
                                 do {
                                     print("leaving room: \(room.id())")
                                     try await room.leave()
+                                    try await room.forget()
+                                    
+                                    if selectedRoomId == room.id() {
+                                        selectedRoomId = nil
+                                    }
                                 } catch {
                                     print("failed to leave room: \(error)")
                                 }
@@ -142,6 +148,16 @@ struct SidebarView: View {
                 ForEach(spaces) { space in
                     SpaceDisclosureGroup(space: space)
                 }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    windowState.selectedScreen = .newRoom
+                } label: {
+                    Label("Create room", systemImage: "plus.bubble")
+                }
+                .help("Create a new room")
             }
         }
     }
