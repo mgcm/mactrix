@@ -3,13 +3,13 @@ import SwiftUI
 import UI
 
 struct TimelineEventView: View {
-    let timeline: LiveTimeline?
+    let timeline: LiveTimeline
     let event: MatrixRustSDK.EventTimelineItem
 
     var body: some View {
         switch event.content {
         case let .msgLike(content: content):
-            ChatMessageView(timeline: timeline?.timeline, event: event, msg: content)
+            ChatMessageView(timeline: timeline, event: event, msg: content)
         case .callInvite:
             UI.GenericEventView(event: event, name: "Call invite")
         case .rtcNotification:

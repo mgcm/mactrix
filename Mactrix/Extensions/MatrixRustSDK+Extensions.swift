@@ -62,7 +62,7 @@ extension MatrixRustSDK.RoomInfo: Models.RoomInfo {}
 
 extension MatrixRustSDK.TimelineItem: @retroactive Hashable, @retroactive Identifiable {
     public var id: String {
-        uniqueId().id
+        self.uniqueId().id
     }
 
     public static func == (lhs: MatrixRustSDK.TimelineItem, rhs: MatrixRustSDK.TimelineItem) -> Bool {
@@ -137,6 +137,17 @@ extension MatrixRustSDK.EventTimelineItem: Models.EventTimelineItem {
 extension MatrixRustSDK.SpaceRoom: @retroactive Identifiable {
     public var id: String {
         roomId
+    }
+}
+
+extension MatrixRustSDK.EventOrTransactionId: @retroactive Identifiable {
+    public var id: String {
+        switch self {
+        case let .eventId(eventId):
+            return eventId
+        case let .transactionId(transactionId):
+            return transactionId
+        }
     }
 }
 

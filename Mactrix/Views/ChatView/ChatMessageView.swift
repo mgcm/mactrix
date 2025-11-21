@@ -6,7 +6,7 @@ import UI
 struct ChatMessageView: View, UI.MessageEventActions {
     @Environment(AppState.self) private var appState
 
-    let timeline: MatrixRustSDK.Timeline?
+    let timeline: LiveTimeline
     let event: MatrixRustSDK.EventTimelineItem
     let msg: MatrixRustSDK.MsgLikeContent
 
@@ -20,7 +20,7 @@ struct ChatMessageView: View, UI.MessageEventActions {
     func toggleReaction(key: String) {
         Task {
             do {
-                let _ = try await timeline?.toggleReaction(itemId: event.eventOrTransactionId, key: key)
+                let _ = try await timeline.timeline?.toggleReaction(itemId: event.eventOrTransactionId, key: key)
             } catch {
                 print("Failed to toggle reaction: \(error)")
             }
@@ -35,7 +35,7 @@ struct ChatMessageView: View, UI.MessageEventActions {
         guard case let .eventId(eventId: eventId) = event.eventOrTransactionId else { return }
         Task {
             do {
-                let _ = try await timeline?.pinEvent(eventId: eventId)
+                let _ = try await timeline.timeline?.pinEvent(eventId: eventId)
             } catch {
                 print("Failed to ping message: \(error)")
             }
@@ -87,65 +87,75 @@ struct ChatMessageView: View, UI.MessageEventActions {
         }
     }
 
-    func embeddEventDetails(embeddedEvent: MatrixRustSDK.EmbeddedEventDetails) -> String {
+    @ViewBuilder
+    func embeddedMessageView(embeddedEvent: MatrixRustSDK.EmbeddedEventDetails, action: @escaping () -> Void) -> some View {
         switch embeddedEvent {
-        case .unavailable:
-            "embedded event unavailable"
-        case .pending:
-            "embedded event pending"
-        case let .ready(content, _, _, _, _):
+        case .unavailable, .pending:
+            UI.MessageReplyView(
+                username: "loading@username.org",
+                message: "Phasellus sit amet purus ac enim semper convallis. Nullam a gravida libero.",
+                action: action
+            )
+            .redacted(reason: .placeholder)
+        case let .ready(content, sender, _, _, _):
             switch content {
             case let .msgLike(content):
                 switch content.kind {
                 case let .message(content):
-                    content.body
+                    UI.MessageReplyView(username: sender, message: content.body, action: action)
                 case let .sticker(body, _, _):
-                    body
+                    UI.MessageReplyView(username: sender, message: body, action: action)
                 case let .poll(question, _, _, _, _, _, _):
-                    question
+                    UI.MessageReplyView(username: sender, message: question, action: action)
                 case .redacted:
-                    "redacted"
+                    UI.MessageReplyView(username: sender, message: "redacted", action: action)
                 case .unableToDecrypt:
-                    "unable to decrypt"
+                    UI.MessageReplyView(username: sender, message: "unable to decrypt", action: action)
                 case .other:
-                    "other event"
+                    UI.MessageReplyView(username: sender, message: "other event", action: action)
                 }
             case .callInvite:
-                "call invite"
+                UI.MessageReplyView(username: sender, message: "call invite", action: action)
             case .rtcNotification:
-                "rtc notification"
+                UI.MessageReplyView(username: sender, message: "rtc notification", action: action)
             case .roomMembership:
-                "room membership"
+                UI.MessageReplyView(username: sender, message: "room membership", action: action)
             case .profileChange:
-                "profile change"
+                UI.MessageReplyView(username: sender, message: "profile change", action: action)
             case .state:
-                "state change"
+                UI.MessageReplyView(username: sender, message: "state change", action: action)
             case .failedToParseMessageLike:
-                "failed to parse message"
+                UI.MessageReplyView(username: sender, message: "failed to parse message", action: action)
             case .failedToParseState:
-                "failed to parse state"
+                UI.MessageReplyView(username: sender, message: "failed to parse state", action: action)
             }
         case let .error(message):
-            "error: \(message)"
+            Text("error: \(message)")
         }
+    }
+    
+    var isEventFocused: Bool {
+        guard let focusedEventId = timeline.focusedTimelineEventId else { return false }
+        return focusedEventId == event.eventOrTransactionId.id
     }
 
     var body: some View {
-        UI.MessageEventView(event: event, reactions: msg.reactions, actions: self, imageLoader: appState.matrixClient) {
+        UI.MessageEventView(event: event, focused: isEventFocused, reactions: msg.reactions, actions: self, imageLoader: appState.matrixClient) {
             VStack(alignment: .leading, spacing: 20) {
                 if msg.inReplyTo != nil || msg.threadRoot != nil || msg.threadSummary != nil {
                     VStack(alignment: .leading) {
                         if let replyTo = msg.inReplyTo {
-                            Text("Reply to \(replyTo.eventId().prefix(8)): \(embeddEventDetails(embeddedEvent: replyTo.event()))").italic()
-                        }
-
-                        if let threadRoot = msg.threadRoot {
-                            Text("Thread root: \(threadRoot.prefix(8))").italic()
+                            embeddedMessageView(embeddedEvent: replyTo.event()) {
+                                timeline.focusEvent(id: replyTo.eventId())
+                            }
                         }
 
                         if let threadSummary = msg.threadSummary {
-                            Text("Thread summary (\(threadSummary.numReplies()) messages): \(embeddEventDetails(embeddedEvent: threadSummary.latestEvent()))")
+                            Text("Thread summary (\(threadSummary.numReplies()) messages)")
                                 .italic()
+                            embeddedMessageView(embeddedEvent: threadSummary.latestEvent()) {
+                                timeline.focusThread(rootEventId: event.eventOrTransactionId.id)
+                            }
                         }
                     }
                     .foregroundStyle(.gray)

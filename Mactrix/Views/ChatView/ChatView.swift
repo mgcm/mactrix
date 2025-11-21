@@ -4,7 +4,7 @@ import SwiftUI
 import UI
 
 struct TimelineItemView: View {
-    let timeline: LiveTimeline?
+    let timeline: LiveTimeline
     let item: TimelineItem
 
     var body: some View {
@@ -21,27 +21,31 @@ struct ChatView: View {
     @Environment(AppState.self) private var appState
 
     let room: LiveRoom
-    @State private var timeline: LiveTimeline? = nil
+    @State private var timeline: LiveTimeline
 
-    @State private var errorMessage: String? = nil
+    init(room: LiveRoom) {
+        self.room = room
+        self.timeline = LiveTimeline(room: room)
+    }
 
-    @State private var scrollPosition = ScrollPosition(idType: TimelineItem.ID.self)
     @State private var scrollNearTop: Bool = false
     @State private var scrollAtBottom: Bool = true
     @State private var latestVisibleEvent: MatrixRustSDK.TimelineItem? = nil
     @State private var latestMarkedReadEvent: MatrixRustSDK.TimelineItem? = nil
 
     func loadMoreMessages() {
-        guard timeline?.paginating == .idle(hitTimelineStart: false) else { return }
+        guard scrollNearTop else { return }
+        guard timeline.paginating == .idle(hitTimelineStart: false) else { return }
         print("Reached top, fetching more messages...")
 
         Task {
             do {
-                try await self.timeline?.fetchOlderMessages()
+                try await self.timeline.fetchOlderMessages()
 
-                if scrollNearTop {
-                    loadMoreMessages()
-                }
+//                if scrollNearTop {
+//                    try await Task.sleep(for: .seconds(1))
+//                    loadMoreMessages()
+//                }
             } catch {
                 print("failed to fetch more message for timeline: \(error)")
             }
@@ -50,7 +54,7 @@ struct ChatView: View {
 
     @ViewBuilder
     var timelineItemsView: some View {
-        if let timelineItems = timeline?.timelineItems {
+        if let timelineItems = timeline.timelineItems {
             LazyVStack {
                 ForEach(timelineItems) { item in
                     TimelineItemView(timeline: timeline, item: item)
@@ -65,11 +69,11 @@ struct ChatView: View {
     var timelineScrollView: some View {
         ScrollView {
             ProgressView("Loading more messages")
-                .opacity(timeline?.paginating == .paginating ? 1 : 0)
+                .opacity(timeline.paginating == .paginating ? 1 : 0)
 
             timelineItemsView
 
-            if let errorMessage = errorMessage {
+            if let errorMessage = timeline.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(Color.red)
                     .frame(maxWidth: .infinity)
@@ -81,7 +85,7 @@ struct ChatView: View {
             }
             .padding(.horizontal, 10)
         }
-        .scrollPosition($scrollPosition)
+        .scrollPosition($timeline.scrollPosition)
         .defaultScrollAnchor(.bottom)
         .contentMargins(.bottom, 10)
         .contentMargins(.top, 20)
@@ -89,13 +93,14 @@ struct ChatView: View {
         .onScrollGeometryChange(for: Bool.self) { geo in
             geo.visibleRect.maxY - geo.containerSize.height < 400.0
         } action: { _, nearTop in
+            print("scroll near top: \(nearTop)")
             scrollNearTop = nearTop
             if nearTop {
                 loadMoreMessages()
             }
         }
         .onScrollTargetVisibilityChange(idType: TimelineItem.ID.self) { visibleTimelineItemIds in
-            guard let timelineItems = timeline?.timelineItems else { return }
+            guard let timelineItems = timeline.timelineItems else { return }
             var latestEvent: MatrixRustSDK.TimelineItem? = nil
 
             for id in visibleTimelineItemIds {
@@ -128,25 +133,17 @@ struct ChatView: View {
     var joinedRoom: some View {
         timelineScrollView
             .overlay(alignment: .bottom) {
-                ChatInputView(room: room, timeline: timeline?.timeline)
+                ChatInputView(room: room, timeline: timeline.timeline)
             }
             .background(Color(NSColor.controlBackgroundColor))
             .navigationTitle(room.displayName() ?? "Unknown room")
             .navigationSubtitle(toolbarSubtitle)
             .frame(minWidth: 250, minHeight: 200)
-            .task(id: room) {
-                do {
-                    self.timeline = try await LiveTimeline(room: room)
-                } catch {
-                    print("loading timeline failed: \(error)")
-                    self.errorMessage = error.localizedDescription
-                }
-            }
-            .onChange(of: timeline?.timelineItems) { _, _ in
-                if scrollPosition.edge == .bottom {
+            .onChange(of: timeline.timelineItems) { _, _ in
+                if timeline.scrollPosition.edge == .bottom {
                     Task {
                         await Task.yield()
-                        scrollPosition.scrollTo(edge: .bottom)
+                        timeline.scrollPosition.scrollTo(edge: .bottom)
                     }
                 }
             }
@@ -161,16 +158,16 @@ struct ChatView: View {
                             return
                         }
 
-                        guard let timeline else { return }
+                        guard let timelineItems = timeline.timelineItems else { return }
 
                         // there doesn't seem to be an API to mark which event is the latest fully read.
                         // instead only send the receipt when the latest message has been read
-                        let isLaterEvents = timeline.timelineItems.contains(where: {
+                        let isLaterEvents = timelineItems.contains(where: {
                             if let e = $0.asEvent() { e.date > event.date } else { false }
                         })
 
                         if !isLaterEvents {
-                            try await timeline.timeline.markAsRead(receiptType: .fullyRead)
+                            try await timeline.timeline?.markAsRead(receiptType: .fullyRead)
                             print("latest event marked as read: \(latest.id)")
                             self.latestMarkedReadEvent = latest
                         }

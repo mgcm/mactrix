@@ -17,6 +17,9 @@ let package = Package(
             targets: ["Models"]
         ),
     ],
+    /* dependencies: [
+            .package(url: "https://github.com/matrix-org/matrix-rust-components-swift", from: "25.10.27"),
+        ], */
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -24,6 +27,10 @@ let package = Package(
             name: "UI",
             dependencies: ["Models"]
         ),
+        /* .target(
+                name: "TimelineUI",
+                dependencies: ["Models", .product(name: "MatrixRustSDK", package: "matrix-rust-components-swift")]
+            ), */
         .target(
             name: "Models"
         ),

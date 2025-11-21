@@ -64,13 +64,15 @@ struct MessageTimestampView: View {
 
 public struct MessageEventView<MessageView: View, EventTimelineItem: Models.EventTimelineItem, Reaction: Models.Reaction>: View {
     let event: EventTimelineItem
+    let focused: Bool
     let reactions: [Reaction]
     let message: MessageView
     let actions: MessageEventActions
     let imageLoader: ImageLoader?
 
-    public init(event: EventTimelineItem, reactions: [Reaction], actions: MessageEventActions, imageLoader: ImageLoader?, @ViewBuilder message: () -> MessageView) {
+    public init(event: EventTimelineItem, focused: Bool, reactions: [Reaction], actions: MessageEventActions, imageLoader: ImageLoader?, @ViewBuilder message: () -> MessageView) {
         self.event = event
+        self.focused = focused
         self.reactions = reactions
         self.actions = actions
         self.imageLoader = imageLoader
@@ -123,7 +125,7 @@ public struct MessageEventView<MessageView: View, EventTimelineItem: Models.Even
                 .shadow(color: .black.opacity(0.1), radius: 4)
         )
         .padding(.trailing, 20)
-        .padding(.top, 8)
+        .padding(.top, 0)
         .opacity(hoverText ? 1 : 0)
     }
 
@@ -155,8 +157,8 @@ public struct MessageEventView<MessageView: View, EventTimelineItem: Models.Even
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.1))
-                        .opacity(hoverText ? 1 : 0)
+                        .fill(focused ? Color.accentColor.opacity(0.1) : Color.gray.opacity(0.1))
+                        .opacity(hoverText || focused ? 1 : 0)
                 )
                 .padding(.horizontal, 10)
 
@@ -196,6 +198,7 @@ public struct MockMessageEventActions: MessageEventActions {
 #Preview {
     MessageEventView(
         event: MockEventTimelineItem(),
+        focused: false,
         reactions: [MockReaction()],
         actions: MockMessageEventActions(),
         imageLoader: nil
