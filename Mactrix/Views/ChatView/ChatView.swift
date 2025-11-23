@@ -21,11 +21,11 @@ struct ChatView: View {
     @Environment(AppState.self) private var appState
 
     let room: LiveRoom
-    @State private var timeline: LiveTimeline
+    @Bindable var timeline: LiveTimeline
 
-    init(room: LiveRoom) {
+    init(room: LiveRoom, timeline: LiveTimeline) {
         self.room = room
-        self.timeline = LiveTimeline(room: room)
+        self.timeline = timeline
     }
 
     @State private var scrollNearTop: Bool = false
@@ -88,7 +88,6 @@ struct ChatView: View {
         .scrollPosition($timeline.scrollPosition)
         .defaultScrollAnchor(.bottom)
         .contentMargins(.bottom, 10)
-        .contentMargins(.top, 20)
         .safeAreaPadding(.bottom, 60) // chat input overlay
         .onScrollGeometryChange(for: Bool.self) { geo in
             geo.visibleRect.maxY - geo.containerSize.height < 400.0

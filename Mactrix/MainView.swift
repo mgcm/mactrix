@@ -11,8 +11,8 @@ struct MainView: View {
 
     @ViewBuilder var details: some View {
         switch windowState.selectedScreen {
-        case let .joinedRoom(room):
-            ChatView(room: room).id(room.id)
+        case let .joinedRoom(room, timeline: timeline):
+            ChatView(room: room, timeline: timeline).id(room.id)
         case let .previewRoom(room):
             Text("Room Preview: \(room.info().name ?? "unknown name")")
             if let topic = room.info().topic {
@@ -101,9 +101,27 @@ struct MainView: View {
                 appState.matrixClient = nil
             }
         }
-        .toolbar(id: "main-toolbar") {
-            ToolbarItem(id: "create-room", placement: .secondaryAction) {
-                AppCommands.createRoomButton(windowState: windowState)
+        .toolbar {
+            AppCommands.createRoomButton(windowState: windowState)
+        }
+        .searchable(text: $windowState.searchQuery, tokens: $windowState.searchTokens, isPresented: $windowState.searchFocused, placement: .automatic, prompt: "Search") { token in
+            switch token {
+            case .users:
+                Text("Users")
+            case .rooms:
+                Text("Public Rooms")
+            case .spaces:
+                Text("Public Spaces")
+            case .messages:
+                Text("Messages")
+            }
+        }
+        .searchSuggestions {
+            if windowState.searchTokens.isEmpty {
+                Label("Users", systemImage: "person").searchCompletion(SearchToken.users)
+                Label("Public Rooms", systemImage: "number").searchCompletion(SearchToken.rooms)
+                Label("Public Spaces", systemImage: "network").searchCompletion(SearchToken.spaces)
+                Label("Messages", systemImage: "magnifyingglass.circle").searchCompletion(SearchToken.messages)
             }
         }
     }
@@ -153,7 +171,7 @@ struct MainView: View {
 
             if let roomId = windowState.selectedRoomId {
                 if let selectedRoom = try matrixClient.client.getRoom(roomId: roomId) {
-                    windowState.selectedScreen = .joinedRoom(LiveRoom(matrixRoom: selectedRoom))
+                    windowState.selectedScreen = .joinedRoom(LiveRoom(matrixRoom: selectedRoom), timeline: LiveTimeline(room: selectedRoom))
                 } else {
                     let roomPreview = try await matrixClient.client.getRoomPreviewFromRoomId(roomId: roomId, viaServers: ["matrix.org"])
 

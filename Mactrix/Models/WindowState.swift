@@ -21,6 +21,20 @@ import SwiftUI
             set: { self.inspectorVisible = $0 }
         )
     }
+    
+    func toggleInspector() {
+        if searchFocused {
+            searchQuery = ""
+            searchTokens = []
+            searchFocused = false
+            inspectorVisible = true
+        } else if case let .joinedRoom(_, timeline: timeline) = selectedScreen, timeline.focusedThreadTimeline != nil {
+            timeline.focusedThreadTimeline = nil
+            inspectorVisible = true
+        } else {
+            inspectorVisible.toggle()
+        }
+    }
 }
 
 enum SearchToken: Hashable, Identifiable {

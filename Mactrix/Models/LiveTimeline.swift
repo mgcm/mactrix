@@ -12,6 +12,7 @@ import SwiftUI
     public var scrollPosition = ScrollPosition(idType: TimelineItem.ID.self, edge: .bottom)
     public var errorMessage: String?
     public var focusedTimelineEventId: String?
+    public var focusedThreadTimeline: LiveTimeline?
 
     public private(set) var timelineItems: [TimelineItem]?
     public private(set) var paginating: RoomPaginationStatus = .idle(hitTimelineStart: false)
@@ -29,9 +30,27 @@ import SwiftUI
         }
     }
 
-    func configureTimeline() async throws {
+    public init(room: MatrixRustSDK.Room, focusThread threadId: String) {
+        self.room = room
+        Task {
+            do {
+                try await configureTimeline(threadId: threadId)
+            } catch {
+                print("failed to configure timeline: \(error)")
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func configureTimeline(threadId: String? = nil) async throws {
+        let focus = if let threadId {
+            TimelineFocus.thread(rootEventId: threadId)
+        } else {
+            TimelineFocus.live(hideThreadedEvents: true)
+        }
+
         let config = TimelineConfiguration(
-            focus: .live(hideThreadedEvents: true),
+            focus: focus,
             filter: .all,
             internalIdPrefix: nil,
             dateDividerMode: .daily,
@@ -43,8 +62,11 @@ import SwiftUI
         // Listen to timeline item updates.
         timelineHandle = await timeline?.addListener(listener: self)
 
-        // Listen to paginate loading status updates.
-        paginateHandle = try await timeline?.subscribeToBackPaginationStatus(listener: self)
+        // Only main timelines can subscibe to back pagination status
+        if threadId == nil {
+            // Listen to paginate loading status updates.
+            paginateHandle = try await timeline?.subscribeToBackPaginationStatus(listener: self)
+        }
     }
 
     public func fetchOlderMessages() async throws {
@@ -69,13 +91,14 @@ import SwiftUI
 
     public func focusThread(rootEventId: String) {
         print("focus thread: \(rootEventId)")
+        focusedThreadTimeline = LiveTimeline(room: room, focusThread: rootEventId)
     }
 }
 
 extension LiveTimeline: @MainActor TimelineListener {
     public func onUpdate(diff: [TimelineDiff]) {
         let oldView = scrollPosition.viewID
-        print("onUpdate old view \(oldView)")
+        print("onUpdate old view \(oldView.debugDescription)")
 
         for update in diff {
             switch update {

@@ -14,8 +14,24 @@ struct InspectorScreen: View {
             SearchInspectorView()
         } else {
             switch windowState.selectedScreen {
-            case let .joinedRoom(room):
-                UI.RoomInspectorView(room: room, members: room.fetchedMembers, roomInfo: room.roomInfo, imageLoader: appState.matrixClient, inspectorVisible: $windowState.inspectorVisible)
+            case let .joinedRoom(room, timeline: timeline):
+                if let thread = timeline.focusedThreadTimeline {
+                    VStack(spacing: 0) {
+                        UI.ThreadTimelineHeader {
+                            withAnimation {
+                                windowState.inspectorVisible = false
+                            }
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(500))
+                                timeline.focusedThreadTimeline = nil
+                            }
+                        }
+                        ChatView(room: room, timeline: thread)
+                    }
+                    .inspectorColumnWidth(min: 200, ideal: 400, max: 800)
+                } else {
+                    UI.RoomInspectorView(room: room, members: room.fetchedMembers, roomInfo: room.roomInfo, imageLoader: appState.matrixClient, inspectorVisible: $windowState.inspectorVisible)
+                }
             case let .previewRoom(room):
                 Text("Preview room: \(room.info().name ?? "unknown name")")
             case .none, .newRoom:
@@ -28,33 +44,11 @@ struct InspectorScreen: View {
         @Bindable var windowState = windowState
 
         content
-            .searchable(text: $windowState.searchQuery, tokens: $windowState.searchTokens, isPresented: $windowState.searchFocused, placement: .automatic, prompt: "Search") { token in
-                switch token {
-                case .users:
-                    Text("Users")
-                case .rooms:
-                    Text("Public Rooms")
-                case .spaces:
-                    Text("Public Spaces")
-                case .messages:
-                    Text("Messages")
-                }
-            }
-            .searchSuggestions {
-                if windowState.searchTokens.isEmpty {
-                    Label("Users", systemImage: "person").searchCompletion(SearchToken.users)
-                    Label("Public Rooms", systemImage: "number").searchCompletion(SearchToken.rooms)
-                    Label("Public Spaces", systemImage: "network").searchCompletion(SearchToken.spaces)
-                    Label("Messages", systemImage: "magnifyingglass.circle").searchCompletion(SearchToken.messages)
-                }
-            }
-            .toolbar(id: "inspector-toolbar") {
-                ToolbarItem(id: "toggle-inspector") {
-                    Button {
-                        windowState.inspectorVisible.toggle()
-                    } label: {
-                        Label("Toggle Inspector", systemImage: "info.circle")
-                    }
+            .toolbar {
+                Button {
+                    windowState.toggleInspector()
+                } label: {
+                    Label("Toggle Inspector", systemImage: "info.circle")
                 }
             }
     }

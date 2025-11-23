@@ -5,6 +5,7 @@ import UI
 
 struct ChatMessageView: View, UI.MessageEventActions {
     @Environment(AppState.self) private var appState
+    @Environment(WindowState.self) private var windowState
 
     let timeline: LiveTimeline
     let event: MatrixRustSDK.EventTimelineItem
@@ -155,6 +156,7 @@ struct ChatMessageView: View, UI.MessageEventActions {
                                 .italic()
                             embeddedMessageView(embeddedEvent: threadSummary.latestEvent()) {
                                 timeline.focusThread(rootEventId: event.eventOrTransactionId.id)
+                                windowState.inspectorVisible = true
                             }
                         }
                     }
