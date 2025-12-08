@@ -3,7 +3,7 @@ import MatrixRustSDK
 import Models
 import OSLog
 
-@Observable
+@MainActor @Observable
 public final class LiveRoom: Identifiable {
     let sidebarRoom: SidebarRoom
 
@@ -12,20 +12,19 @@ public final class LiveRoom: Identifiable {
 
     private var typingHandle: TaskHandle?
 
-    public var room: MatrixRustSDK.Room {
-        sidebarRoom.room
-    }
+    public let room: MatrixRustSDK.Room
 
     public var roomInfo: MatrixRustSDK.RoomInfo? {
         sidebarRoom.roomInfo
     }
 
-    public var id: String {
+    public nonisolated var id: String {
         room.id()
     }
 
     public init(sidebarRoom: SidebarRoom) {
         self.sidebarRoom = sidebarRoom
+        self.room = sidebarRoom.room
     }
 
     public convenience init(matrixRoom: MatrixRustSDK.Room) {
@@ -38,48 +37,52 @@ public final class LiveRoom: Identifiable {
 }
 
 extension LiveRoom: TypingNotificationsListener {
-    public func call(typingUserIds: [String]) {
-        self.typingUserIds = typingUserIds
+    public nonisolated func call(typingUserIds: [String]) {
+        Task { @MainActor in
+            self.typingUserIds = typingUserIds
+        }
     }
 }
 
 extension LiveRoom: Hashable {
-    public static func == (lhs: LiveRoom, rhs: LiveRoom) -> Bool {
+    public nonisolated static func == (lhs: LiveRoom, rhs: LiveRoom) -> Bool {
         lhs.id == rhs.id
     }
-    
-    public func hash(into hasher: inout Hasher) {
+
+    public nonisolated func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 }
 
 extension LiveRoom: Models.Room {
-    public func syncMembers() async throws {
-        // guard not already synced
-        guard fetchedMembers == nil else { return }
+    public nonisolated func syncMembers() async throws {
+        Task { @MainActor in
+            // guard not already synced
+            guard fetchedMembers == nil else { return }
 
-        let id = self.id
-        Logger.liveRoom.debug("syncing members for room: \(id)")
+            let id = self.id
+            Logger.liveRoom.debug("syncing members for room: \(id)")
 
-        let memberIter = try await room.members()
-        var result = [MatrixRustSDK.RoomMember]()
-        while let memberChunk = memberIter.nextChunk(chunkSize: 1000) {
-            result.append(contentsOf: memberChunk)
+            let memberIter = try await room.members()
+            var result = [MatrixRustSDK.RoomMember]()
+            while let memberChunk = memberIter.nextChunk(chunkSize: 1000) {
+                result.append(contentsOf: memberChunk)
+            }
+            fetchedMembers = result
+
+            Logger.liveRoom.debug("synced \(result.count) members")
         }
-        fetchedMembers = result
-
-        Logger.liveRoom.debug("synced \(result.count) members")
     }
 
-    public var displayName: String? {
+    public nonisolated var displayName: String? {
         room.displayName()
     }
 
-    public var topic: String? {
+    public nonisolated var topic: String? {
         room.topic()
     }
 
-    public var encryptionState: Models.EncryptionState {
+    public nonisolated var encryptionState: Models.EncryptionState {
         room.encryptionState().asModel
     }
 }

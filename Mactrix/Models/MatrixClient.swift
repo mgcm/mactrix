@@ -66,8 +66,8 @@ enum SelectedScreen {
     case none
 }
 
-@MainActor
-@Observable class MatrixClient {
+@MainActor @Observable
+class MatrixClient {
     let storeID: String
     var client: ClientProtocol!
 
@@ -188,6 +188,7 @@ enum SelectedScreen {
         _ = _roomListEntriesHandle.controller().setFilter(kind: .all(filters: []))
 
         notificationClient = try await client.notificationClient(processSetup: .singleProcess(syncService: _syncService))
+        await client.registerNotificationHandler(listener: self)
 
         try await client.getSessionVerificationController().setDelegate(delegate: self)
 
@@ -234,8 +235,8 @@ enum MatrixClientRestoreSessionError: Error {
     case sessionNotFound, wrongUserId
 }
 
-extension MatrixClient: @MainActor MatrixRustSDK.ClientSessionDelegate {
-    func retrieveSessionFromKeychain(userId: String) throws -> MatrixRustSDK.Session {
+extension MatrixClient: MatrixRustSDK.ClientSessionDelegate {
+    nonisolated func retrieveSessionFromKeychain(userId: String) throws -> MatrixRustSDK.Session {
         Logger.matrixClient.debug("client session delegate: retrieve session from keychain: \(userId, privacy: .sensitive)")
 
         let userSession = try UserSession.loadUserFromKeychain()
@@ -253,7 +254,7 @@ extension MatrixClient: @MainActor MatrixRustSDK.ClientSessionDelegate {
         }
     }
 
-    func saveSessionInKeychain(session: MatrixRustSDK.Session) {
+    nonisolated func saveSessionInKeychain(session: MatrixRustSDK.Session) {
         Logger.matrixClient.debug("client session delegate: save session in keychain")
         do {
             try UserSession(session: session, storeID: storeID).saveUserToKeychain()

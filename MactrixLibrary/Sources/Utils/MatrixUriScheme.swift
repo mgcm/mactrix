@@ -34,7 +34,7 @@ public struct MatrixUriScheme: Hashable, Codable {
             throw .parserError(reason: "did not match url structure")
         }
 
-        let (_, kind, id, event, query) = match.output
+        let (_, kind, id, _ /* event */, query) = match.output
 
         switch kind {
         case "roomid":

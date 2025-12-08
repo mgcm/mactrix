@@ -19,8 +19,8 @@ enum SearchDirectResult {
     case resolvedUser(profile: MatrixRustSDK.UserProfile)
 }
 
-@MainActor
-@Observable final class WindowState {
+@MainActor @Observable
+final class WindowState {
     var selectedScreen: SelectedScreen = .none
 
     // @SceneStorage("MainView.selectedRoomId")

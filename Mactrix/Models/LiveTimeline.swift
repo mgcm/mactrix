@@ -3,8 +3,8 @@ import MatrixRustSDK
 import OSLog
 import SwiftUI
 
-@MainActor
-@Observable public final class LiveTimeline {
+@MainActor @Observable
+public final class LiveTimeline {
     nonisolated let room: LiveRoom
     public let isThreadFocus: Bool
 
@@ -16,9 +16,9 @@ import SwiftUI
     public var scrollPosition = ScrollPosition(idType: TimelineItem.ID.self, edge: .bottom)
     public var errorMessage: String?
     public var focusedTimelineEventId: String?
-    
-    //public var focusedThreadTimeline: LiveTimeline?
-    
+
+    // public var focusedThreadTimeline: LiveTimeline?
+
     public var sendReplyTo: MatrixRustSDK.EventTimelineItem?
 
     public private(set) var timelineItems: [TimelineItem]?
@@ -99,48 +99,52 @@ import SwiftUI
     }
 }
 
-extension LiveTimeline: @MainActor TimelineListener {
-    public func onUpdate(diff: [TimelineDiff]) {
-        let oldView = scrollPosition.viewID
-        Logger.liveTimeline.trace("onUpdate old view \(oldView.debugDescription)")
+extension LiveTimeline: TimelineListener {
+    public nonisolated func onUpdate(diff: [TimelineDiff]) {
+        Task { @MainActor in
+            let oldView = scrollPosition.viewID
+            Logger.liveTimeline.trace("onUpdate old view \(oldView.debugDescription)")
 
-        for update in diff {
-            switch update {
-            case let .append(values):
-                timelineItems!.append(contentsOf: values)
-            case .clear:
-                timelineItems!.removeAll()
-            case let .pushFront(room):
-                timelineItems!.insert(room, at: 0)
-            case let .pushBack(room):
-                timelineItems!.append(room)
-            case .popFront:
-                timelineItems!.removeFirst()
-            case .popBack:
-                timelineItems!.removeLast()
-            case let .insert(index, room):
-                timelineItems!.insert(room, at: Int(index))
-            case let .set(index, room):
-                timelineItems![Int(index)] = room
-            case let .remove(index):
-                timelineItems!.remove(at: Int(index))
-            case let .truncate(length):
-                timelineItems!.removeSubrange(Int(length) ..< timelineItems!.count)
-            case let .reset(values: values):
-                timelineItems = values
+            for update in diff {
+                switch update {
+                case let .append(values):
+                    timelineItems!.append(contentsOf: values)
+                case .clear:
+                    timelineItems!.removeAll()
+                case let .pushFront(room):
+                    timelineItems!.insert(room, at: 0)
+                case let .pushBack(room):
+                    timelineItems!.append(room)
+                case .popFront:
+                    timelineItems!.removeFirst()
+                case .popBack:
+                    timelineItems!.removeLast()
+                case let .insert(index, room):
+                    timelineItems!.insert(room, at: Int(index))
+                case let .set(index, room):
+                    timelineItems![Int(index)] = room
+                case let .remove(index):
+                    timelineItems!.remove(at: Int(index))
+                case let .truncate(length):
+                    timelineItems!.removeSubrange(Int(length) ..< timelineItems!.count)
+                case let .reset(values: values):
+                    timelineItems = values
+                }
             }
-        }
 
-        if let oldView {
-            scrollPosition.scrollTo(id: oldView, anchor: .top)
+            if let oldView {
+                scrollPosition.scrollTo(id: oldView, anchor: .top)
+            }
         }
     }
 }
 
-extension LiveTimeline: @MainActor PaginationStatusListener {
-    public func onUpdate(status: MatrixRustSDK.RoomPaginationStatus) {
-        Logger.liveTimeline.debug("updating timeline paginating: \(status.debugDescription)")
-        paginating = status
+extension LiveTimeline: PaginationStatusListener {
+    public nonisolated func onUpdate(status: MatrixRustSDK.RoomPaginationStatus) {
+        Task { @MainActor in
+            Logger.liveTimeline.debug("updating timeline paginating: \(status.debugDescription)")
+            paginating = status
+        }
     }
 }
 

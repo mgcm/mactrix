@@ -2,15 +2,15 @@ import Foundation
 import MatrixRustSDK
 import OSLog
 
-@Observable
+@MainActor @Observable
 public final class SidebarRoom: Identifiable {
     public let room: MatrixRustSDK.Room
     public var roomInfo: RoomInfo?
-    
-    public var id: String {
+
+    public nonisolated var id: String {
         room.id()
     }
-    
+
     public init(room: MatrixRustSDK.Room) {
         self.room = room
         subscribeRoomInfo()
@@ -18,7 +18,7 @@ public final class SidebarRoom: Identifiable {
 
     @ObservationIgnored
     private var roomInfoHandle: TaskHandle?
-    
+
     fileprivate func subscribeRoomInfo() {
         Task {
             do {
@@ -32,7 +32,9 @@ public final class SidebarRoom: Identifiable {
 }
 
 extension SidebarRoom: MatrixRustSDK.RoomInfoListener {
-    public func call(roomInfo: MatrixRustSDK.RoomInfo) {
-        self.roomInfo = roomInfo
+    public nonisolated func call(roomInfo: MatrixRustSDK.RoomInfo) {
+        Task { @MainActor in
+            self.roomInfo = roomInfo
+        }
     }
 }

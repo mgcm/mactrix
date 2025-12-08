@@ -3,8 +3,8 @@ import MatrixRustSDK
 import Models
 import OSLog
 
-@MainActor
-@Observable final class AppState {
+@MainActor @Observable
+final class AppState {
     var matrixClient: MatrixClient?
 
     func reset() async throws {

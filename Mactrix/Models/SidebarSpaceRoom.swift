@@ -1,7 +1,7 @@
 import Foundation
 import MatrixRustSDK
 
-@Observable
+@MainActor @Observable
 public final class SidebarSpaceRoom {
     let spaceRoom: SpaceRoom
 
@@ -37,5 +37,5 @@ public final class SidebarSpaceRoom {
 }
 
 extension SidebarSpaceRoom: Identifiable {
-    public var id: String { spaceRoom.roomId }
+    public nonisolated var id: String { spaceRoom.roomId }
 }

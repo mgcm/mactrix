@@ -2,7 +2,8 @@ import Foundation
 import MatrixRustSDK
 import OSLog
 
-@Observable public final class LiveSpaceService {
+@MainActor @Observable
+public final class LiveSpaceService {
     public let spaceService: SpaceService
 
     public var spaceRooms: [SidebarSpaceRoom] = []
@@ -22,31 +23,33 @@ import OSLog
 }
 
 extension LiveSpaceService: SpaceServiceJoinedSpacesListener {
-    public func onUpdate(roomUpdates: [MatrixRustSDK.SpaceListUpdate]) {
-        for update in roomUpdates {
-            switch update {
-            case let .append(values):
-                spaceRooms.append(contentsOf: values.map { SidebarSpaceRoom(spaceService: self, spaceRoom: $0) })
-            case .clear:
-                spaceRooms.removeAll()
-            case let .pushFront(room):
-                spaceRooms.insert(SidebarSpaceRoom(spaceService: self, spaceRoom: room), at: 0)
-            case let .pushBack(room):
-                spaceRooms.append(SidebarSpaceRoom(spaceService: self, spaceRoom: room))
-            case .popFront:
-                spaceRooms.removeFirst()
-            case .popBack:
-                spaceRooms.removeLast()
-            case let .insert(index, room):
-                spaceRooms.insert(SidebarSpaceRoom(spaceService: self, spaceRoom: room), at: Int(index))
-            case let .set(index, room):
-                spaceRooms[Int(index)] = SidebarSpaceRoom(spaceService: self, spaceRoom: room)
-            case let .remove(index):
-                spaceRooms.remove(at: Int(index))
-            case let .truncate(length):
-                spaceRooms.removeSubrange(Int(length) ..< spaceRooms.count)
-            case let .reset(values: values):
-                spaceRooms = values.map { SidebarSpaceRoom(spaceService: self, spaceRoom: $0) }
+    public nonisolated func onUpdate(roomUpdates: [MatrixRustSDK.SpaceListUpdate]) {
+        Task { @MainActor in
+            for update in roomUpdates {
+                switch update {
+                case let .append(values):
+                    spaceRooms.append(contentsOf: values.map { SidebarSpaceRoom(spaceService: self, spaceRoom: $0) })
+                case .clear:
+                    spaceRooms.removeAll()
+                case let .pushFront(room):
+                    spaceRooms.insert(SidebarSpaceRoom(spaceService: self, spaceRoom: room), at: 0)
+                case let .pushBack(room):
+                    spaceRooms.append(SidebarSpaceRoom(spaceService: self, spaceRoom: room))
+                case .popFront:
+                    spaceRooms.removeFirst()
+                case .popBack:
+                    spaceRooms.removeLast()
+                case let .insert(index, room):
+                    spaceRooms.insert(SidebarSpaceRoom(spaceService: self, spaceRoom: room), at: Int(index))
+                case let .set(index, room):
+                    spaceRooms[Int(index)] = SidebarSpaceRoom(spaceService: self, spaceRoom: room)
+                case let .remove(index):
+                    spaceRooms.remove(at: Int(index))
+                case let .truncate(length):
+                    spaceRooms.removeSubrange(Int(length) ..< spaceRooms.count)
+                case let .reset(values: values):
+                    spaceRooms = values.map { SidebarSpaceRoom(spaceService: self, spaceRoom: $0) }
+                }
             }
         }
     }
