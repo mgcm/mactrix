@@ -106,8 +106,7 @@ struct ChatMessageView: View, UI.MessageEventActions {
     }
 
     var isEventFocused: Bool {
-        guard let focusedEventId = timeline.focusedTimelineEventId else { return false }
-        return focusedEventId == event.eventOrTransactionId.id
+        return timeline.focusedTimelineEventId == event.eventOrTransactionId
     }
 
     var ownUserId: String {
@@ -129,7 +128,7 @@ struct ChatMessageView: View, UI.MessageEventActions {
                     VStack(alignment: .leading) {
                         if let replyTo = msg.inReplyTo {
                             EmbeddedMessageView(embeddedEvent: replyTo.event()) {
-                                timeline.focusEvent(id: replyTo.eventId())
+                                timeline.focusEvent(id: .eventId(eventId: replyTo.eventId()))
                             }
                         }
 

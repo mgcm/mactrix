@@ -15,15 +15,13 @@ public final class LiveTimeline {
 
     public var scrollPosition = ScrollPosition(idType: TimelineGroup.ID.self, edge: .bottom)
     public var errorMessage: String?
-    public var focusedTimelineEventId: String?
+
+    public private(set) var focusedTimelineEventId: EventOrTransactionId?
+    public private(set) var focusedTimelineGroupId: String?
 
     // public var focusedThreadTimeline: LiveTimeline?
 
     public var sendReplyTo: MatrixRustSDK.EventTimelineItem?
-
-    /*@ObservationIgnored private var timelineUpdateVersion = 0
-     @ObservationIgnored private var timelineItems: [TimelineItem]?
-     public private(set) var timelineGroups: [TimelineGroup]?*/
 
     @ObservationIgnored private var timelineItems: [TimelineItem] = []
     public private(set) var timelineGroups: TimelineGroups = .init()
@@ -90,19 +88,27 @@ public final class LiveTimeline {
         _ = try await timeline?.paginateBackwards(numEvents: 100)
     }
 
-    public func focusEvent(id eventId: String) {
-        Logger.liveTimeline.info("focus event: \(eventId)")
+    public func focusEvent(id eventId: EventOrTransactionId) {
+        Logger.liveTimeline.info("focus event: \(eventId.id)")
+        focusedTimelineEventId = eventId
 
-        Logger.liveTimeline.warning("TODO: Implement focus event again")
-        /* if let item = timelineItems?.first(where: { $0.asEvent()?.eventOrTransactionId.id == eventId }) {
-             Logger.liveTimeline.debug("scrolling to item \(item.id)")
-             focusedTimelineEventId = eventId
-             withAnimation {
-                 scrollPosition.scrollTo(id: item.id)
-             }
-         } else {
-             Logger.liveTimeline.warning("could not find item in timeline")
-         } */
+        let group = timelineGroups.groups.first { group in
+            switch group {
+            case let .messages(messages, _, _):
+                return messages.contains(where: { $0.event.eventOrTransactionId == eventId })
+            case .stateChanges:
+                return false
+            case .virtual:
+                return false
+            }
+        }
+        focusedTimelineGroupId = group?.id
+
+        if let focusedTimelineGroupId {
+            withAnimation {
+                scrollPosition.scrollTo(id: focusedTimelineGroupId)
+            }
+        }
     }
 }
 
