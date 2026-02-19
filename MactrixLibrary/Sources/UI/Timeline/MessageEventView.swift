@@ -32,6 +32,7 @@ struct HoverButton<Icon: View>: View {
     }
 }
 
+@MainActor
 public protocol MessageEventActions {
     func toggleReaction(key: String)
     func reply()
