@@ -102,6 +102,7 @@ class TimelineViewController: NSViewController {
         tableView.headerView = nil
         tableView.style = .plain
         tableView.allowsColumnSelection = false
+        tableView.selectionHighlightStyle = .none
 
         tableView.rowHeight = -1
         tableView.usesAutomaticRowHeights = true
