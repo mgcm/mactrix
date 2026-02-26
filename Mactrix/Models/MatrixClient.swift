@@ -1,6 +1,6 @@
 import AsyncAlgorithms
 import Foundation
-import KeychainAccess
+import Valet
 import MatrixRustSDK
 import OSLog
 import Security
@@ -8,6 +8,71 @@ import SwiftUI
 import UI
 import UniformTypeIdentifiers
 import Utils
+
+struct UserSession: Codable {
+    let accessToken: String
+    let refreshToken: String?
+    let userID: String
+    let deviceID: String
+    let homeserverURL: String
+    let oidcData: String?
+    let storeID: String
+
+    init(session: Session, storeID: String) {
+        accessToken = session.accessToken
+        refreshToken = session.refreshToken
+        userID = session.userId
+        deviceID = session.deviceId
+        homeserverURL = session.homeserverUrl
+        oidcData = session.oidcData
+        self.storeID = storeID
+    }
+
+    var session: Session {
+        Session(accessToken: accessToken,
+                refreshToken: refreshToken,
+                userId: userID,
+                deviceId: deviceID,
+                homeserverUrl: homeserverURL,
+                oidcData: oidcData,
+                slidingSyncVersion: .native)
+    }
+
+    fileprivate static var keychainKey: String { "UserSession" }
+
+    func saveUserToKeychain() throws {
+        guard let identifier = Identifier(nonEmpty: Bundle.main.bundleIdentifier) else {
+            fatalError("Unable to generate keychain identifier")
+        }
+        let valet = Valet.valet(with: identifier, accessibility: .whenUnlocked)
+        let keychainData = try JSONEncoder().encode(self)
+        try valet.setObject(keychainData, forKey: Self.keychainKey)
+    }
+
+    static func loadUserFromKeychain() throws -> Self? {
+        Logger.matrixClient.debug("Load user from keychain")
+        guard let identifier = Identifier(nonEmpty: Bundle.main.bundleIdentifier) else {
+            fatalError("Unable to generate keychain identifier")
+        }
+        let valet = Valet.valet(with: identifier, accessibility: .whenUnlocked)
+        if let keychainData = try valet.object(forKey: Self.keychainKey) as Data? {
+            let sessionData = try JSONDecoder().decode(Self.self,
+                                                       from: keychainData)
+            return sessionData
+        } else {
+            return nil
+        }
+    }
+}
+
+enum SelectedScreen {
+    case joinedRoom(timeline: LiveTimeline)
+    case loadMatrixUrl(_ url: Utils.MatrixUriScheme)
+    case previewRoom(_ room: RoomPreview)
+    case user(profile: UserProfile)
+    case newRoom
+    case none
+}
 
 @MainActor @Observable
 class MatrixClient {
@@ -110,8 +175,11 @@ class MatrixClient {
         try? await client.logout()
         try? FileManager.default.removeItem(at: .sessionData(for: storeID))
         try? FileManager.default.removeItem(at: .sessionCaches(for: storeID))
-        let keychain = Keychain(service: applicationID)
-        try keychain.removeAll()
+        guard let identifier = Identifier(nonEmpty: Bundle.main.bundleIdentifier) else {
+            fatalError("Unable to generate keychain identifier")
+        }
+        let valet = Valet.valet(with: identifier, accessibility: .whenUnlocked)
+        try valet.removeAllObjects()
         Logger.matrixClient.debug("matrix client sign out complete")
     }
 
