@@ -61,6 +61,8 @@ struct MessageFileView: View {
             } label: {
                 if let icon {
                     icon.quickLookPreview($quickLookUrl)
+                } else {
+                    Image(nsImage: NSWorkspace.shared.icon(for: mimeType ?? .data))
                 }
                 Text(content.filename).textSelection(.enabled)
                 if let fileSize = content.info?.size {
