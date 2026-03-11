@@ -12,7 +12,7 @@ public final class LiveRoom: Identifiable {
 
     @ObservationIgnored private var typingHandle: TaskHandle?
 
-    public nonisolated var room: MatrixRustSDK.Room {
+    public var room: MatrixRustSDK.Room {
         sidebarRoom.room
     }
 
@@ -91,16 +91,16 @@ extension LiveRoom: Hashable {
     }
 }
 
-extension LiveRoom: Models.Room {
-    public nonisolated var displayName: String? {
+extension LiveRoom: @MainActor Models.Room {
+    public var displayName: String? {
         room.displayName()
     }
 
-    public nonisolated var topic: String? {
+    public var topic: String? {
         room.topic()
     }
 
-    public nonisolated var encryptionState: Models.EncryptionState {
+    public var encryptionState: Models.EncryptionState {
         room.encryptionState().asModel
     }
 }
